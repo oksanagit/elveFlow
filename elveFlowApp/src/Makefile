@@ -14,7 +14,7 @@ DBD += elveFlowSupport.dbd
 # Build the IOC application
 
 PROD_IOC_WIN32 += elveFlowAppV1
-elveFlowAppV1_SRCS += drvElveFlow
+elveFlowAppV1_SRCS += drvElveFlowOB1
 ##PROD_IOC_WIN32 += measCompDemoAppV2
 ##measCompDemoAppV2_SRCS += drv1608G_V2
 ##PROD_IOC_WIN32 += measCompDemoAppV3

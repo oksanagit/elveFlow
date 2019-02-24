@@ -6,6 +6,11 @@ include $(TOP)/configure/CONFIG
 
 # Note, the following files were manually copied from the Measurement Computing/DAQ/C directory.
 INC += Elveflow64.h
+INC += extcode.h
+INC += platdefines.h
+INC += fundtypes.h
+INC += lv_prolog.h
+INC += lv_epilog.h
 
 ifeq (win32-x86, $(findstring win32-x86, $(T_A)))
 LIB_INSTALLS += ../os/win32-x86/Elveflow32.lib
