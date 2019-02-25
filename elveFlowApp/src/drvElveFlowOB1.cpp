@@ -56,7 +56,7 @@ USBelveFlow::USBelveFlow(const char *portName)
       0,                                // Interfaces that do callbacks
       ASYN_CANBLOCK,                    //* ASYN_CANBLOCK=1, 
       1,                                // autoConnect=1 */
-      0, 0),  /* Default priority and stack size */
+      0, 0)  /* Default priority and stack size */
 {
   _MyOB1_ID = -1;  // initialized myOB1ID at negative value (after initialization it should become positive or =0)
                   // initialize the OB1 -> Use NiMAX to determine the device name
@@ -65,14 +65,14 @@ USBelveFlow::USBelveFlow(const char *portName)
   int error=0;
   error = OB1_Initialization("01C8453E", Z_regulator_type__0_2000_mbar, Z_regulator_type__0_2000_mbar, Z_regulator_type__0_8000_mbar, Z_regulator_type__0_8000_mbar, &_MyOB1_ID);
   // ID is found via NIMAX software as instructed. Channels are preconfiggured/hardware installed by ElveFlow
-  Check_Error(error); // error send if not recognized, it is claimed API has it, I did not see it, it is part of NI MAX software, there should be an include some place
+ // OKS to deleted Check_Error(error); // error send if not recognized, it is claimed API has it, I did not see it, it is part of NI MAX software, there should be an include some place
                       // Judging by the comments in    OB1.cpp this Check_Error() may include some GUI, since they they "will pop up" 
   printf("error = %d, _MyOB1_ID = %d \n", error, _MyOB1_ID);
   // Analog output parameters
   if(error==0){
      Elveflow_Calibration_Default(_Calibration, 1000); //use default calibration
   }
-  createParam(EFSetPressureString, asynParamInt32, setPressure_);
+  createParam(EFSetPressureString, asynParamInt32, &setPressure_);
 }
 
 asynStatus USBelveFlow::getBounds(asynUser *pasynUser, epicsInt32 *low, epicsInt32 *high)
@@ -103,7 +103,7 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value)
   setIntegerParam(addr, function, value);
 
   // Analog output functions
-  if (function == setPressure_ {
+  if (function == setPressure_) {
     status = OB1_Set_Press(_MyOB1_ID, 1, value, _Calibration, 1000);
     // I know numbers needs to be chaged to constants
   }
