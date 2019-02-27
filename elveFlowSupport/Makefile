@@ -10,6 +10,11 @@ INC += extcode.h
 INC += platdefines.h
 INC += fundtypes.h
 INC += lv_prolog.h
+
+USR_CFLAGS_WIN32 += /MANIFESTUAC:level=asInvoker
+USR_CFLAGS_WIN32 += /MANIFESTUAC:uiAccess=false
+
+
 INC += lv_epilog.h
 
 ifeq (win32-x86, $(findstring win32-x86, $(T_A)))
