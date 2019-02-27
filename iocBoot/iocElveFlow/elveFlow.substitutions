@@ -3,12 +3,12 @@ file "$(ASYN)/db/asynRecord.db"
 {
 pattern
 { P, R, PORT, ADDR, IMAX, OMAX}
-{ 1608G:, asyn1, 1608G_1, 0, 80, 80}
+{ xf11id-elveFlowOB1:, asyn1, elveFlowOB1, 0, 80, 80}
 }
 # Analog outputs
-file "$(MEASCOMP)/measCompApp/Db/measCompAnalogOut.template"
+file "$(ELVEFLOW)/measCompACpp/Db/measCompAnalogOut.template"
 {
 pattern
-{ P, R, VAL, PORT, ADDR, EGUL, DRVL, LOPR, EGUF, DRVH, HOPR, PREC}
-{ 1608G:, Press, 0, 1608G_1, 0, 0., 0., 0., 200., 200., 200., 1}
+{ P,                   R, VAL, PORT, ADDR,        EGUL, DRVL, LOPR, EGUF,   DRVH, HOPR, PREC}
+{ xf11id-elveFlowOB1:, set_P1, 0,    elveFlowOB1, 0.,   0.,   0.,   200.,   200., 200., 1}
 }

@@ -4,13 +4,13 @@
 dbLoadDatabase "../../dbd/measCompApp.dbd"
 elveFlowApp_registerRecordDeviceDriver pdbbase
 
-## OKS Not sure what to lad dbLoadTemplate("1608G.substitutions_V1")
+dbLoadTemplate("elveFlow.substitutions")
 
 ## Configure port driver
 # USBelveFlowConfig(portName)        # The name to give to this asyn port driver
 
-USBelveFlowConfig("1608G_1", 1)
+USBelveFlowConfig("elveFlowOB1", 1)
 
-#asynSetTraceMask 1608G_1 -1 255
+#asynSetTraceMask elveFlowOB1 -1 255
 
 iocInit
