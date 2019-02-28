@@ -1,7 +1,7 @@
 < envPaths
 
 ## Register all support components
-dbLoadDatabase "../../dbd/measCompApp.dbd"
+dbLoadDatabase "../../dbd/elveFlowApp.dbd"
 elveFlowApp_registerRecordDeviceDriver pdbbase
 
 dbLoadTemplate("elveFlow.substitutions")
