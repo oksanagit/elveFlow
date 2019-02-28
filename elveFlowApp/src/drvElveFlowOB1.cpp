@@ -29,6 +29,7 @@ static const char *driverName = "USBelveFlow";
 class USBelveFlow : public asynPortDriver {
 public:
   USBelveFlow(const char *portName);
+  ~USBelveFlow();
 
   /* These are the methods that we override from asynPortDriver */
   virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
@@ -74,6 +75,12 @@ USBelveFlow::USBelveFlow(const char *portName)
   }
   createParam(EFSetPressureString, asynParamInt32, &setPressure_);
 }
+
+ USBelveFlow:: ~USBelveFlow()
+ {
+  OB1_Destructor(_MyOB1_ID);
+  printf("Destructor is called\n");
+ }
 
 asynStatus USBelveFlow::getBounds(asynUser *pasynUser, epicsInt32 *low, epicsInt32 *high)
 {
