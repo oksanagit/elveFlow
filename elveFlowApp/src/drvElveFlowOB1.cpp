@@ -7,13 +7,18 @@
  * Mark Rivers
  * April 14, 2012
 */
-
+#include <iostream> //OKS for test
 #include <iocsh.h>
 #include <asynPortDriver.h>
 
 #include <Elveflow64.h>
 
 #include <epicsExport.h>
+#include <epicsExit.h>
+using namespace std;  //OKS for test
+
+// Forward function definitions
+static void exitCallbackC(void *drvPvt);
 
 static const char *driverName = "USBelveFlow";
 
@@ -30,6 +35,7 @@ class USBelveFlow : public asynPortDriver {
 public:
   USBelveFlow(const char *portName);
   ~USBelveFlow();
+  void setAllPressure(int p1=0);
 
   /* These are the methods that we override from asynPortDriver */
   virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
@@ -69,16 +75,29 @@ USBelveFlow::USBelveFlow(const char *portName)
  // OKS to deleted Check_Error(error); // error send if not recognized, it is claimed API has it, I did not see it, it is part of NI MAX software, there should be an include some place
                       // Judging by the comments in    OB1.cpp this Check_Error() may include some GUI, since they they "will pop up" 
   printf("error = %d, _MyOB1_ID = %d \n", error, _MyOB1_ID);
+
+  // Add a sensor
+  error = OB1_Add_Sens(_MyOB1_ID, 1, Z_sensor_type_Flow_7_muL_min, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit);
+  // Add digital flow sensor with H2O Calibration
+  // ! ! ! If the sensor is not recognized a pop up will indicate it)
+  cout<<"error: "<< error << endl;// error send if not recognized
+
+
   // Analog output parameters
   if(error==0){
-     Elveflow_Calibration_Default(_Calibration, 1000); //use default calibration
+     Elveflow_Calibration_Default(_Calibration, 1000); //use default _calibration
   }
   createParam(EFSetPressureString, asynParamInt32, &setPressure_);
+
+  // Set exit handler to clean up
+ epicsAtExit(exitCallbackC, this);
 }
 
- USBelveFlow:: ~USBelveFlow()
+ USBelveFlow::~USBelveFlow()
  {
+  setAllPressure();
   OB1_Destructor(_MyOB1_ID);
+  delete _Calibration;
   printf("Destructor is called\n");
  }
 
@@ -112,7 +131,13 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value)
   // Analog output functions
   if (function == setPressure_) {
     status = OB1_Set_Press(_MyOB1_ID, 1, value, _Calibration, 1000);
-    // I know numbers needs to be chaged to constants
+    // Numbers needs to be chaged to constants
+    // OKS test code
+    double get_Sens_data;
+    int channel =1;
+    OB1_Get_Sens_Data(_MyOB1_ID, channel, 1, &get_Sens_data);//use pointer
+    cout << "channel 1" << channel << ": " << get_Sens_data << " µl/min" << endl;
+
   }
 
   callParamCallbacks(addr);
@@ -128,6 +153,25 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value)
   return (status==0) ? asynSuccess : asynError;
 }
 
+// Sets all preassure to val in mbars, usefull to bring all challel to 0. 
+// Caution as different channels can have different ranges
+void USBelveFlow::setAllPressure(int p1){
+  double set_all_pressure [4];
+  for (int i = 0; i < 4; i++)//Init the pressure array
+      {
+        set_all_pressure[i] = p1;// create the array with all data
+      }
+      OB1_Set_All_Press(_MyOB1_ID, set_all_pressure, _Calibration, 4, 1000);
+}
+//_____________________________________________________________________________________________
+
+/** Callback function that is called by EPICS when the IOC exits */
+
+static void exitCallbackC(void *pPvt)
+{
+  USBelveFlow *pUSBelveFlow = (USBelveFlow*) pPvt;
+  delete(pUSBelveFlow);
+}
 
 /** Configuration command, called directly or from iocsh */
 extern "C" int USBelveFlowConfig(const char *portName)
