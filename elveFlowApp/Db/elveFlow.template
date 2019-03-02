@@ -1,4 +1,4 @@
-record(ao,"$(P)$(R)") {
+record(ao,"$(P)$(R):setP1") {
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),$(ADDR))EF_SET_PRESSURE")
@@ -10,4 +10,20 @@ record(ao,"$(P)$(R)") {
     field(PREC, "$(PREC)")
     field(LINR, "LINEAR")
     field(VAL,  "$(VAL)")
+}
+
+record(ai,"$(P)$(R):getP1")
+{
+    field(SCAN, "$(SCAN)")
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))EF_GET_PRESSURE")
+    field(PREC, "$(PREC)")
+}
+
+record(ai,"$(P)$(R):getSensor1")
+{
+    field(SCAN, "$(SCAN)")
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))EF_GET_FLOW")
+    field(PREC, "$(PREC)")
 }

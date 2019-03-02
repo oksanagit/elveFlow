@@ -1,11 +1,14 @@
-/* drvUSBelveFlow_V1.cpp
+/* drvUSBelveFlow.cpp
  *
- * Driver for Measurement Computing USB-1608G multi-function DAQ board using asynPortDriver base class
+ * Driver for elveFlow OB1 using asynPortDriver base class
  *
- * This version implements only simple analog outputs
+ * This version implements 
+ * set pressure
+ * read pressure
+ * ...
  *
- * Mark Rivers
- * April 14, 2012
+ * Oksana Ivashkevych 
+ * March 2019
 */
 #include <iostream> //OKS for test
 #include <iocsh.h>
@@ -23,7 +26,11 @@ static void exitCallbackC(void *drvPvt);
 static const char *driverName = "USBelveFlow";
 
 // Analog output parameters, set Frequency of measurements up t0 100 Hz.
-#define EFSetPressureString      "EF_SET_PRESSURE" // analogOutValue ANALOG_OUT_VALUE
+#define EFSetPressureString      "EF_SET_PRESSURE" 
+
+// Analog input parameters
+#define EFReadPressureString      "EF_GET_PRESSURE"
+#define EFReadFlowSting           "EF_GET_FLOW"
 
 // OKS #define NUM_ANALOG_OUT  2   // Number of analog outputs on 1608G
 // OKS #define MAX_SIGNALS     NUM_ANALOG_OUT
@@ -40,10 +47,17 @@ public:
   /* These are the methods that we override from asynPortDriver */
   virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
   virtual asynStatus getBounds(asynUser *pasynUser, epicsInt32 *low, epicsInt32 *high);
+  virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value); // This function is not used, ready for the future records
+  virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
+  virtual void report(FILE *fp, int details);
 
 protected:
   // Analog output parameters
   int setPressure_;
+
+  //Analog input parameters
+  int readPressure_;
+  int readSensor_;
 // OKS  #define FIRST_USBelveFlow_PARAM  analogOutValue_  #OKS no longer needed
 // OKS  #define LAST_USBelveFlow_PARAM   analogOutValue_  #OKS no longer needed
 
@@ -69,35 +83,38 @@ USBelveFlow::USBelveFlow(const char *portName)
                   // initialize the OB1 -> Use NiMAX to determine the device name
                   //avoid non alphanumeric characters in device name
   _Calibration = new double[1000]; // Size can vary, depending on the instrument but 1000 is always enough
-  int error=0;
-  error = OB1_Initialization("01C8453E", Z_regulator_type__0_2000_mbar, Z_regulator_type__0_2000_mbar, Z_regulator_type__0_8000_mbar, Z_regulator_type__0_8000_mbar, &_MyOB1_ID);
+  int status=0;
+  status = OB1_Initialization("01C8453E", Z_regulator_type__0_2000_mbar, Z_regulator_type__0_2000_mbar, Z_regulator_type__0_8000_mbar, Z_regulator_type__0_8000_mbar, &_MyOB1_ID);
   // ID is found via NIMAX software as instructed. Channels are preconfiggured/hardware installed by ElveFlow
  // OKS to deleted Check_Error(error); // error send if not recognized, it is claimed API has it, I did not see it, it is part of NI MAX software, there should be an include some place
                       // Judging by the comments in    OB1.cpp this Check_Error() may include some GUI, since they they "will pop up" 
-  printf("error = %d, _MyOB1_ID = %d \n", error, _MyOB1_ID);
+  printf("error = %d, _MyOB1_ID = %d \n", status, _MyOB1_ID);
 
   // Add a sensor
-  error = OB1_Add_Sens(_MyOB1_ID, 1, Z_sensor_type_Flow_7_muL_min, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit);
+  status = OB1_Add_Sens(_MyOB1_ID, 1, Z_sensor_type_Flow_7_muL_min, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit);
   // Add digital flow sensor with H2O Calibration
   // ! ! ! If the sensor is not recognized a pop up will indicate it)
-  cout<<"error: "<< error << endl;// error send if not recognized
+  cout<<"error: "<< status << endl;// error send if not recognized
 
-
-  // Analog output parameters
-  if(error==0){
-     Elveflow_Calibration_Default(_Calibration, 1000); //use default _calibration
+  if(status==0){
+     status = Elveflow_Calibration_Default(_Calibration, 1000); //use default _calibration
   }
-  createParam(EFSetPressureString, asynParamInt32, &setPressure_);
+  // Analog output p arameters
+  createParam(EFSetPressureString,    asynParamInt32, &setPressure_);
+
+  // Analog Input parameters
+  createParam(EFReadFlowSting,        asynParamFloat64, &readSensor_);
+  createParam(EFReadPressureString,   asynParamFloat64, &readPressure_);
 
   // Set exit handler to clean up
- epicsAtExit(exitCallbackC, this);
+  epicsAtExit(exitCallbackC, this);
 }
 
  USBelveFlow::~USBelveFlow()
  {
   setAllPressure();
   OB1_Destructor(_MyOB1_ID);
-  delete _Calibration;
+  delete[] _Calibration;
   printf("Destructor is called\n");
  }
 
@@ -107,6 +124,7 @@ asynStatus USBelveFlow::getBounds(asynUser *pasynUser, epicsInt32 *low, epicsInt
 
   // Analog outputs are 16-bit devices
   if (function == setPressure_) {
+  // function ==getSensor_, function == getPreassure do not have any size restriction
     *low = 0;
     *high =2000; //Channels 1 and 2 can go only up 2000 mbars
     return(asynSuccess);
@@ -132,12 +150,12 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value)
   if (function == setPressure_) {
     status = OB1_Set_Press(_MyOB1_ID, 1, value, _Calibration, 1000);
     // Numbers needs to be chaged to constants
-    // OKS test code
+     // OKS test code
     double get_Sens_data;
     int channel =1;
     OB1_Get_Sens_Data(_MyOB1_ID, channel, 1, &get_Sens_data);//use pointer
-    cout << "channel 1" << channel << ": " << get_Sens_data << " µl/min" << endl;
-
+    cout << "\n\nchannel 1" << channel << ": " << get_Sens_data << " ul/min" << endl;
+    
   }
 
   callParamCallbacks(addr);
@@ -153,9 +171,67 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value)
   return (status==0) ? asynSuccess : asynError;
 }
 
-// Sets all preassure to val in mbars, usefull to bring all challel to 0. 
-// Caution as different channels can have different ranges
+asynStatus USBelveFlow::readInt32(asynUser *pasynUser, epicsInt32 *value){
+  int addr;
+  int function = pasynUser->reason;
+  int status = 0;
+  int readVal;
+  int channel = 1;
+  static const char *functionName = "readInt32";
+
+  this->getAddress(pasynUser, &addr);
+  // Analog input function
+  /* OKS flow is a double!!! not int32!!!
+  if (function == readPressure_) { 
+    status = OB1_Get_Press(_MyOB1_ID, channel, 1, _Calibration, &readVal, 1000);
+    value = readVal;
+    setIntegerParam(addr, readPressure_, *value);
+  }
+
+  else if(function == readSensor_){
+    double readVal;
+    status = OB1_Get_Sens_Data(_MyOB1_ID, channel, 1, &readVal);  //use pointer
+    value = readVal;
+    setIntegerParam(addr, readSensor_, *value);
+    cout << "channel 1" << channel << ": " << readVal << endl;
+  }
+  */
+  callParamCallbacks(addr);
+  cout<<"\n!!!!!!!In readInt32\n";
+  return (status == 0) ? asynSuccess : asynError;
+  }
+
+asynStatus USBelveFlow::readFloat64(asynUser *pasynUser, epicsFloat64 *value){
+  int addr;
+  int function = pasynUser->reason;
+  int status=0;
+  int channel = 1;
+  double fVal = -1;
+  int filter=0;
+  static const char *functionName = "readFloat64";
+
+  this->getAddress(pasynUser, &addr);
+
+  if (function == readPressure_) { 
+    status = OB1_Get_Press(_MyOB1_ID, channel, 1, _Calibration, &fVal, 1000);
+    *value = fVal;
+    setDoubleParam(addr, readPressure_, *value);
+  }
+
+  else if(function == readSensor_){
+    status = OB1_Get_Sens_Data(_MyOB1_ID, channel, 1, &fVal);  //use pointer
+    *value = fVal;
+    setDoubleParam(addr, readSensor_, *value);
+  }
+  callParamCallbacks(addr);
+  cout<<"\n!!!!!!In readFloat64\n";
+  return (status == 0) ? asynSuccess : asynError;
+
+}
+
 void USBelveFlow::setAllPressure(int p1){
+  // Sets all preassure to val in mbars, usefull to bring all challel to 0. 
+  // Caution as different channels can have different ranges
   double set_all_pressure [4];
   for (int i = 0; i < 4; i++)//Init the pressure array
       {
@@ -163,6 +239,13 @@ void USBelveFlow::setAllPressure(int p1){
       }
       OB1_Set_All_Press(_MyOB1_ID, set_all_pressure, _Calibration, 4, 1000);
 }
+
+/* Report parameters */ 
+void USBelveFlow::report(FILE *fp, int details){
+  fprintf(fp, " Port: %s \n", this->portName); 
+  asynPortDriver::report(fp, details); 
+}
+
 //_____________________________________________________________________________________________
 
 /** Callback function that is called by EPICS when the IOC exits */
