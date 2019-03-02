@@ -47,7 +47,8 @@ public:
   /* These are the methods that we override from asynPortDriver */
   virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
   virtual asynStatus getBounds(asynUser *pasynUser, epicsInt32 *low, epicsInt32 *high);
-  virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value); // This function is not used, ready for the future records
+  virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value);     // This function is not used, ready for the future records
+  virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value); // This function is not used, for the future records 
   virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
   virtual void report(FILE *fp, int details);
 
@@ -72,11 +73,11 @@ private:
   */
 USBelveFlow::USBelveFlow(const char *portName)
   : asynPortDriver( portName, 
-                    1,                  // * maxAddr* /
-      asynInt32Mask | asynDrvUserMask,  // Interfaces that we implement
-      0,                                // Interfaces that do callbacks
-      ASYN_CANBLOCK,                    //* ASYN_CANBLOCK=1, 
-      1,                                // autoConnect=1 */
+                    1,                                      // * maxAddr* /
+      asynInt32Mask | asynFloat64Mask | asynDrvUserMask,    // Interfaces that we implement
+      asynInt32Mask | asynFloat64Mask,                      // Interfaces that do callbacks
+      ASYN_CANBLOCK,                                        //* ASYN_CANBLOCK=1, 
+      1,                                                    // autoConnect=1 */
       0, 0)  /* Default priority and stack size */
 {
   _MyOB1_ID = -1;  // initialized myOB1ID at negative value (after initialization it should become positive or =0)
@@ -200,7 +201,11 @@ asynStatus USBelveFlow::readInt32(asynUser *pasynUser, epicsInt32 *value){
   cout<<"\n!!!!!!!In readInt32\n";
   return (status == 0) ? asynSuccess : asynError;
   }
-
+asynStatus USBelveFlow::writeFloat64(asynUser *pasynUser, epicsFloat64 value){
+  int status=0;
+  cout<<"\n!!!!In writeFloat64\n";
+  return (status == 0) ? asynSuccess : asynError;
+}
 asynStatus USBelveFlow::readFloat64(asynUser *pasynUser, epicsFloat64 *value){
   int addr;
   int function = pasynUser->reason;
@@ -216,15 +221,16 @@ asynStatus USBelveFlow::readFloat64(asynUser *pasynUser, epicsFloat64 *value){
     status = OB1_Get_Press(_MyOB1_ID, channel, 1, _Calibration, &fVal, 1000);
     *value = fVal;
     setDoubleParam(addr, readPressure_, *value);
+   // cout<<"\n!!!!!!In readFloat64 readPressure_\n";
   }
 
   else if(function == readSensor_){
     status = OB1_Get_Sens_Data(_MyOB1_ID, channel, 1, &fVal);  //use pointer
     *value = fVal;
     setDoubleParam(addr, readSensor_, *value);
+   // cout<<"\n!!!!!!In readFloat64 readSensor_\n";
   }
   callParamCallbacks(addr);
-  cout<<"\n!!!!!!In readFloat64\n";
   return (status == 0) ? asynSuccess : asynError;
 
 }
