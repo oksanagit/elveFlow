@@ -45,22 +45,20 @@ public:
   void setAllPressure(int p1=0);
 
   /* These are the methods that we override from asynPortDriver */
-  virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-  virtual asynStatus getBounds(asynUser *pasynUser, epicsInt32 *low, epicsInt32 *high);
+  virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);     // This function is not used, for the future records 
+  virtual asynStatus getBounds(asynUser *pasynUser, epicsFloat64 *low, epicsFloat64 *high);
   virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value);     // This function is not used, ready for the future records
-  virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value); // This function is not used, for the future records 
+  virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value); 
   virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
   virtual void report(FILE *fp, int details);
 
 protected:
-  // Analog output parameters
+
   int setPressure_;
 
-  //Analog input parameters
+  
   int readPressure_;
   int readSensor_;
-// OKS  #define FIRST_USBelveFlow_PARAM  analogOutValue_  #OKS no longer needed
-// OKS  #define LAST_USBelveFlow_PARAM   analogOutValue_  #OKS no longer needed
 
 private:
   int _MyOB1_ID;
@@ -101,12 +99,22 @@ USBelveFlow::USBelveFlow(const char *portName)
      status = Elveflow_Calibration_Default(_Calibration, 1000); //use default _calibration
   }
   // Analog output p arameters
-  createParam(EFSetPressureString,    asynParamInt32, &setPressure_);
+  createParam(EFSetPressureString,    asynParamFloat64, &setPressure_);
 
   // Analog Input parameters
   createParam(EFReadFlowSting,        asynParamFloat64, &readSensor_);
   createParam(EFReadPressureString,   asynParamFloat64, &readPressure_);
 
+  //read pressure for bumpless reboot
+  double fVal;
+  int channel =1;
+
+  status = OB1_Get_Press(_MyOB1_ID, channel, 1, _Calibration, &fVal, 1000);
+  //do smth with status: log, report
+  cout << "in Constructor read pressure " <<fVal<< endl;
+
+  setDoubleParam(readPressure_, fVal);
+  setDoubleParam(setPressure_, fVal);
   // Set exit handler to clean up
   epicsAtExit(exitCallbackC, this);
 }
@@ -119,7 +127,7 @@ USBelveFlow::USBelveFlow(const char *portName)
   printf("Destructor is called\n");
  }
 
-asynStatus USBelveFlow::getBounds(asynUser *pasynUser, epicsInt32 *low, epicsInt32 *high)
+asynStatus USBelveFlow::getBounds(asynUser *pasynUser, epicsFloat64 *low, epicsFloat64 *high)
 {
   int function = pasynUser->reason;
 
@@ -145,8 +153,8 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value)
   this->getAddress(pasynUser, &addr);
   // OKS What if addr is screwed up somehow
 
-  setIntegerParam(addr, function, value);
-
+//  setIntegerParam(addr, function, value);
+/*OKS
   // Analog output functions
   if (function == setPressure_) {
     status = OB1_Set_Press(_MyOB1_ID, 1, value, _Calibration, 1000);
@@ -158,7 +166,8 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value)
     cout << "\n\nchannel 1" << channel << ": " << get_Sens_data << " ul/min" << endl;
     
   }
-
+*/
+  cout<<"In function writeInt32()\n";
   callParamCallbacks(addr);
   if (status == 0) {
     asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, 
@@ -176,7 +185,7 @@ asynStatus USBelveFlow::readInt32(asynUser *pasynUser, epicsInt32 *value){
   int addr;
   int function = pasynUser->reason;
   int status = 0;
-  int readVal;
+ // int readVal;
   int channel = 1;
   static const char *functionName = "readInt32";
 
@@ -201,11 +210,46 @@ asynStatus USBelveFlow::readInt32(asynUser *pasynUser, epicsInt32 *value){
   cout<<"\n!!!!!!!In readInt32\n";
   return (status == 0) ? asynSuccess : asynError;
   }
+
+
 asynStatus USBelveFlow::writeFloat64(asynUser *pasynUser, epicsFloat64 value){
+  int addr;
+  int function = pasynUser->reason;
   int status=0;
+  static const char *functionName = "writeFloat64";
+
+  this->getAddress(pasynUser, &addr);
+
+  setDoubleParam(addr, function, value);
+
+  // Analog output functions
+  if (function == setPressure_) {
+    status = OB1_Set_Press(_MyOB1_ID, 1, value, _Calibration, 1000);
+    // Numbers needs to be chaged to constants
+     // OKS test code
+    double get_Sens_data;
+    int channel =1;
+    OB1_Get_Sens_Data(_MyOB1_ID, channel, 1, &get_Sens_data);//use pointer
+    cout << "\n\nchannel 1" << channel << ": " << get_Sens_data << " ul/min" << endl;
+    
+  }
+
+  callParamCallbacks(addr);
+  if (status == 0) {
+    asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, 
+             "%s:%s, port %s, wrote %d to address %d\n",
+             driverName, functionName, this->portName, value, addr);
+  } else {
+    asynPrint(pasynUser, ASYN_TRACE_ERROR, 
+             "%s:%s, port %s, ERROR writing %d to address %d, status=%d\n",
+             driverName, functionName, this->portName, value, addr, status);
+  }
+
   cout<<"\n!!!!In writeFloat64\n";
   return (status == 0) ? asynSuccess : asynError;
 }
+
+
 asynStatus USBelveFlow::readFloat64(asynUser *pasynUser, epicsFloat64 *value){
   int addr;
   int function = pasynUser->reason;
