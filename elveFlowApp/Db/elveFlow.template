@@ -6,7 +6,7 @@ record(ao,"$(P)$(R):Pres1") {
     field(DRVH, "$(DRVH)")
     field(PREC, "$(PREC)")
     field(VAL,  "0")
-}
+    field(EGU,  "mbar")
 
 record(ai,"$(P)$(R):Pres1_RBV")
 {
