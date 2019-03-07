@@ -31,7 +31,7 @@ ASYN=$(SUPPORT)/asyn
 CALC=$(SUPPORT)/calc
 ##STD=$(SUPPORT)/std-3-4-1
 ##MCA=$(SUPPORT)/mca-7-7
-BUSY=$(SUPPORT)/busy
+##BUSY=$(SUPPORT)/busy
 # SSCAN is needed by calc for recDynLink
 ##SSCAN=$(SUPPORT)/sscan-2-11-1
 ##AUTOSAVE=$(SUPPORT)/autosave-5-9

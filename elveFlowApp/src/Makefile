@@ -10,25 +10,27 @@ include $(TOP)/configure/CONFIG
 DBD += elveFlowApp.dbd
 DBD += elveFlowSupport.dbd
 
+LIBRARY_IOC_WIN32 += Elveflow
+# Compile and add the code to the support library
+# Link locally-provided code into the support library,
+# rather than directly into the IOC application.
+
+LIB_SRCS += drvElveFlowOB1.cpp
+
+Elveflow_LIBS += asyn
+###Elveflow_LIBS += Elveflow64
+Elveflow_LIBS += $(EPICS_BASE_IOC_LIBS)
+
 #=============================
 # Build the IOC application
 
 PROD_IOC_WIN32 += elveFlowAppV1
-elveFlowAppV1_SRCS += drvElveFlowOB1
-##PROD_IOC_WIN32 += measCompDemoAppV2
-##measCompDemoAppV2_SRCS += drv1608G_V2
-##PROD_IOC_WIN32 += measCompDemoAppV3
-##measCompDemoAppV3_SRCS += drv1608G_V3
-##PROD_IOC_WIN32 += measCompDemoAppV4
-##measCompDemoAppV4_SRCS += drv1608G_V4
-##PROD_IOC_WIN32 += measCompDemoAppV5
-##measCompDemoAppV5_SRCS += drv1608G_V5
-##PROD_IOC_WIN32 += measCompDemoApp
-##measCompDemoApp_SRCS += drv1608G
+### elveFlowAppV1_SRCS += drvElveFlowOB1
 
 PROD_SRCS += elveFlowApp_registerRecordDeviceDriver.cpp
 PROD_SRCS += elveFlowAppMain.cpp
 PROD_LIBS += asyn
+PROD_LIBS += Elveflow
 ifeq (win32-x86, $(findstring win32-x86, $(T_A)))
 PROD_LIBS += cbw_32
 else ifeq (cygwin-x86, $(findstring cygwin-x86, $(T_A)))
