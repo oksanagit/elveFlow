@@ -1,1 +1,1 @@
-set PATH=%PATH%;C:\ElveFlow\ESI_V3_02_04\SDK_V3_02_04\SDK_V3_02_04\DLL64\ElveFlow64DLL
+set PATH=%PATH%;C:\epics\elveFlow\elveFlowSupport\os\windows-x64

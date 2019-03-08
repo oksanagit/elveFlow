@@ -22,6 +22,7 @@ LIB_INSTALLS += ../os/win32-x86/Elveflow32.lib
 
 else ifeq (windows-x64, $(findstring windows-x64, $(T_A)))
 LIB_INSTALLS += ../os/windows-x64/Elveflow64.lib
+LIB_INSTALLS += ../os/windows-x64/Elveflow64.dll
 
 endif
 

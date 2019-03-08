@@ -10,16 +10,16 @@ include $(TOP)/configure/CONFIG
 DBD += elveFlowApp.dbd
 DBD += elveFlowSupport.dbd
 
-LIBRARY_IOC_WIN32 += Elveflow
+##LIBRARY_IOC_WIN32 += Elveflow
 # Compile and add the code to the support library
 # Link locally-provided code into the support library,
 # rather than directly into the IOC application.
 
-LIB_SRCS += drvElveFlowOB1.cpp
+## LIB_SRCS += drvElveFlowOB1.cpp
 
-Elveflow_LIBS += asyn
+##Elveflow_LIBS += asyn
 ###Elveflow_LIBS += Elveflow64
-Elveflow_LIBS += $(EPICS_BASE_IOC_LIBS)
+##Elveflow_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #=============================
 # Build the IOC application
