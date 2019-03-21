@@ -29,18 +29,20 @@ record(calcout,"$(P)$(R)P1TweakDown") {
     field(PREC, "$(PREC)")
 }
 
-record(ai,"$(P)$(R):Pres1_RBV")
+record(ai,"$(P)$(R)Pres1_RBV")
 {
-    field(SCAN, "1 second")
+    field(SCAN, ".1 second")
     field(DTYP, "asynFloat64")
     field(INP,  "@asyn($(PORT),$(ADDR))EF_GET_PRESSURE")
     field(PREC, "$(PREC)")
+    field(EGU,  "mbar")
 }
 
-record(ai,"$(P)$(R):Sensor1_RBV")
+record(ai,"$(P)$(R)Sensor1_RBV")
 {
-    field(SCAN, "1 second")
+    field(SCAN, ".1 second")
     field(DTYP, "asynFloat64")
     field(INP,  "@asyn($(PORT),$(ADDR))EF_GET_FLOW")
     field(PREC, "$(PREC)")
+    field(EGU,  "ml")
 }
