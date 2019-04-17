@@ -27,6 +27,9 @@ static void exitCallbackC(void *drvPvt);
 
 static const char *driverName = "USBelveFlow";
 
+//Sensor type parameters
+#define EFSensorTypeString        "EF_Z_SENSOR_TYPE"
+
 // Analog output parameters, set Frequency of measurements up t0 100 Hz.
 #define EFSetPressureString      "EF_SET_PRESSURE" 
 
@@ -43,15 +46,16 @@ public:
   void setAllPressure(int p1=0);
 
   /* These are the methods that we override from asynPortDriver */
+  virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
   virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value); 
   virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
   virtual void report(FILE *fp, int details);
 
 protected:
+  int sensorType_;
 
   int setPressure_;
-
-  
+ 
   int readPressure_;
   int readSensor_;
 
@@ -91,19 +95,23 @@ USBelveFlow::USBelveFlow(const char *portName)
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s device found\n", driverName, functionName);
 
   // Add digital flow sensor with H2O Calibration
+  /* OKS now this is a parameter
   status = OB1_Add_Sens(_MyOB1_ID, 1, Z_sensor_type_Flow_7_muL_min, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit); 
   if (status ==- 1)
     asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s device not found\n", driverName, functionName);
   else 
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s device found\n", driverName, functionName);
-
+ */
 
   if(status==0){
      status = Elveflow_Calibration_Default(_Calibration, 1000); //use default _calibration
   }
   else
     asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s No calibration loaded\n", driverName, functionName);
-  // Analog output p arameters
+  // Sensor type param
+  createParam(EFSensorTypeString, asynParamInt32, &sensorType_);
+
+  // Analog output parameters
   createParam(EFSetPressureString,    asynParamFloat64, &setPressure_);
 
   // Analog Input parameters
@@ -130,6 +138,32 @@ USBelveFlow::USBelveFlow(const char *portName)
   delete[] _Calibration;
  }
 
+asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value){
+  int addr;
+  int function = pasynUser->reason;
+  int status=0;
+  static const char *functionName = "writeInt32";
+
+  this->getAddress(pasynUser, &addr);
+  setIntegerParam(addr, function, value);
+
+  if (function == sensorType_) {
+    status = OB1_Add_Sens(_MyOB1_ID, 1, value, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit); 
+    if (status ==- 1){
+      asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s device not found\n", driverName, functionName);
+      printf(" Somethis went wrong!!\n");
+    }
+
+    else {
+      asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s device found\n", driverName, functionName);
+      cout<<"Everything is OK"<<endl;
+    }
+  }
+  callParamCallbacks(addr);
+  //If more params are added, consider adding asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, ....
+  return (status == 0) ? asynSuccess : asynError;
+
+}
 
 asynStatus USBelveFlow::writeFloat64(asynUser *pasynUser, epicsFloat64 value){
   int addr;
@@ -189,6 +223,7 @@ asynStatus USBelveFlow::readFloat64(asynUser *pasynUser, epicsFloat64 *value){
      status = asynPortDriver::readFloat64(pasynUser, value);
   }
   callParamCallbacks(addr);
+  //If more params are added, consider adding asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, ....
   return (status == 0) ? asynSuccess : asynError;
 
 }
