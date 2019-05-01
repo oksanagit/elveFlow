@@ -151,12 +151,10 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value){
     status = OB1_Add_Sens(_MyOB1_ID, 1, value, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit); 
     if (status ==- 1){
       asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s device not found\n", driverName, functionName);
-      printf(" Somethis went wrong!!\n");
     }
 
     else {
       asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s device found\n", driverName, functionName);
-      cout<<"Everything is OK"<<endl;
     }
   }
   callParamCallbacks(addr);
