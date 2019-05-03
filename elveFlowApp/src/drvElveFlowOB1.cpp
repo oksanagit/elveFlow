@@ -37,6 +37,9 @@ static const char *driverName = "USBelveFlow";
 #define EFReadPressureString      "EF_GET_PRESSURE"
 #define EFReadFlowSting           "EF_GET_FLOW"
 
+//This is a multidevice with 4 identical channels
+#define MAX_SIGNALS 4
+
 /** Class definition for the USBelveFlow class
   */
 class USBelveFlow : public asynPortDriver {
@@ -72,10 +75,10 @@ private:
   */
 USBelveFlow::USBelveFlow(const char *portName)
   : asynPortDriver( portName, 
-                    1,                                      // * maxAddr* /
+                    MAX_SIGNALS,                             // * maxAddr* /
       asynInt32Mask | asynFloat64Mask | asynDrvUserMask,    // Interfaces that we implement
       asynInt32Mask | asynFloat64Mask,                      // Interfaces that do callbacks
-      ASYN_CANBLOCK,                                        //* ASYN_CANBLOCK=1, 
+      ASYN_MULTIDEVICE | ASYN_CANBLOCK,                     //* ASYN_CANBLOCK=1, ASYN_MULTIDEVICE =1 
       1,                                                    // autoConnect=1 */
       0, 0)  /* Default priority and stack size */
 {
@@ -148,7 +151,8 @@ asynStatus USBelveFlow::writeInt32(asynUser *pasynUser, epicsInt32 value){
   setIntegerParam(addr, function, value);
 
   if (function == sensorType_) {
-    status = OB1_Add_Sens(_MyOB1_ID, 1, value, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit); 
+    cout<<"addr= "<<addr<<endl;
+    status = OB1_Add_Sens(_MyOB1_ID, addr+1, value, Z_Sensor_digit_analog_Analog, Z_Sensor_FSD_Calib_H2O, Z_D_F_S_Resolution__16Bit); 
     if (status ==- 1){
       asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s device not found\n", driverName, functionName);
     }
@@ -175,7 +179,7 @@ asynStatus USBelveFlow::writeFloat64(asynUser *pasynUser, epicsFloat64 value){
 
   // Analog output functions
   if (function == setPressure_) {
-    status = OB1_Set_Press(_MyOB1_ID, 1, value, _Calibration, 1000);
+    status = OB1_Set_Press(_MyOB1_ID, addr+1, value, _Calibration, 1000);
     // Numbers needs to be chaged to constants    
   }
 
@@ -198,7 +202,6 @@ asynStatus USBelveFlow::readFloat64(asynUser *pasynUser, epicsFloat64 *value){
   int addr;
   int function = pasynUser->reason;
   int status=0;
-  int channel = 1;
   double fVal = -1;
   int filter=0;
   static const char *functionName = "readFloat64";
@@ -206,13 +209,13 @@ asynStatus USBelveFlow::readFloat64(asynUser *pasynUser, epicsFloat64 *value){
   this->getAddress(pasynUser, &addr);
 
   if (function == readPressure_) { 
-    status = OB1_Get_Press(_MyOB1_ID, channel, 1, _Calibration, &fVal, 1000);
+    status = OB1_Get_Press(_MyOB1_ID, addr+1, 1, _Calibration, &fVal, 1000);
     *value = fVal;
     setDoubleParam(addr, readPressure_, *value);
   }
 
   else if(function == readSensor_){
-    status = OB1_Get_Sens_Data(_MyOB1_ID, channel, 1, &fVal);  
+    status = OB1_Get_Sens_Data(_MyOB1_ID, addr+1, 1, &fVal);  
     *value = fVal;
     setDoubleParam(addr, readSensor_, *value);
   }
